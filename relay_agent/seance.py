@@ -1,0 +1,117 @@
+"""Séances de course planifiées pour la montre (contrat prevu.json), avec validation : porté de seance.py v1.
+Chaque changement est écrit en local puis déposé chiffré sur le relais ; si le relais refuse, le local est restauré."""
+
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+
+from .client import Relais
+
+
+class Validation(ValueError):
+    """Argument refusé : le message dit pourquoi, pour l'agent qui l'a produit."""
+
+
+def _allure(texte: str) -> dict:
+    def secondes(v):
+        if ":" in v:
+            m, s = v.split(":")
+            return int(m) * 60 + int(s)
+        return int(v)
+    try:
+        a, b = (secondes(v) for v in texte.split("-"))
+    except ValueError:
+        raise Validation(f"allure illisible : {texte!r} (attendu 265-280 ou 4:25-4:40)") from None
+    return {"min_s_km": min(a, b), "max_s_km": max(a, b)}
+
+
+def _etape(texte: str) -> dict:
+    m = re.fullmatch(r"(effort|recup):(\d+)(m?)(?:@([\d:]+-[\d:]+))?", texte)
+    if not m:
+        raise Validation(f"étape illisible dans le bloc : {texte!r} (attendu effort:180@265-280, recup:120, effort:400m@4:10-4:20)")
+    genre, valeur, metres, cible = m.groups()
+    e = {"type": genre, "distance_m" if metres else "duree_s": int(valeur)}
+    if cible:
+        e["allure"] = _allure(cible)
+    return e
+
+
+def _bloc(texte: str) -> dict:
+    parts = texte.split()
+    m = re.fullmatch(r"(\d+)x", parts[0]) if parts else None
+    if not m or len(parts) < 2:
+        raise Validation(f"bloc illisible : {texte!r} (attendu « 6x effort:180@265-280 recup:120 »)")
+    return {"repetitions": int(m.group(1)), "etapes": [_etape(p) for p in parts[1:]]}
+
+
+def _chemin(dest: Path) -> Path:
+    return Path(dest) / "coach" / "prevu.json"
+
+
+def lister(dest: Path) -> list[dict]:
+    chemin = _chemin(dest)
+    if not chemin.exists():
+        return []
+    try:
+        seances = json.loads(chemin.read_text()).get("seances", [])
+    except (ValueError, AttributeError):
+        raise Validation(f"{chemin} illisible : corrige-le ou supprime-le") from None
+    return sorted((s for s in seances if isinstance(s, dict)), key=lambda s: str(s.get("date", "")))
+
+
+def formater(seances: list[dict]) -> str:
+    return "\n".join(f"{s['id']} {s['date']} {s['nom']}" for s in seances) or "aucune séance prévue"
+
+
+def _enregistrer(dest: Path, relais: Relais, seances: list[dict]) -> list[dict]:
+    """Local puis relais ; si le relais refuse, le fichier local revient à son état d'avant."""
+    chemin = _chemin(dest)
+    avant = chemin.read_bytes() if chemin.exists() else None
+    contenu = json.dumps({"seances": sorted(seances, key=lambda s: s["date"])}, ensure_ascii=False, indent=1).encode()
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    tmp = chemin.with_suffix(".tmp")
+    tmp.write_bytes(contenu)
+    tmp.replace(chemin)
+    try:
+        relais.deposer("prevu.json", contenu)
+    except Exception:
+        if avant is None:
+            chemin.unlink(missing_ok=True)
+        else:
+            chemin.write_bytes(avant)
+        raise
+    return lister(dest)
+
+
+def ajouter(dest: Path, relais: Relais, id: str, nom: str, date: str, blocs: list[str],
+            echauffement: int = 0, retour_calme: int = 0, maintenant: datetime | None = None) -> list[dict]:
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*", id):
+        raise Validation("id attendu au format AAAA-MM-JJ-<slug en minuscules>, par exemple 2026-10-21-frac-6x3")
+    try:
+        quand = datetime.fromisoformat(date)
+    except ValueError:
+        raise Validation(f"date illisible : {date!r} (attendu 2026-10-21T18:30:00+02:00)") from None
+    if quand.tzinfo is None:
+        raise Validation("la date doit porter son décalage horaire, par exemple +02:00")
+    if quand <= (maintenant or datetime.now().astimezone()):
+        raise Validation(f"date passée : {date} ; une séance se planifie dans le futur")
+    s = {"id": id, "nom": nom, "date": quand.isoformat()}
+    if echauffement:
+        s["echauffement"] = {"duree_s": int(echauffement)}
+    s["blocs"] = [_bloc(b) for b in blocs]
+    if retour_calme:
+        s["retour_calme"] = {"duree_s": int(retour_calme)}
+    return _enregistrer(dest, relais, [x for x in lister(dest) if x.get("id") != id] + [s])
+
+
+def retirer(dest: Path, relais: Relais, id: str) -> list[dict]:
+    seances = lister(dest)
+    if not any(s.get("id") == id for s in seances):
+        raise Validation(f"id inconnu : {id}")
+    return _enregistrer(dest, relais, [s for s in seances if s.get("id") != id])
+
+
+def purger(dest: Path, relais: Relais, maintenant: datetime | None = None) -> list[dict]:
+    maintenant = maintenant or datetime.now().astimezone()
+    return _enregistrer(dest, relais, [s for s in lister(dest) if datetime.fromisoformat(s["date"]) > maintenant])
