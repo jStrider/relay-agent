@@ -31,13 +31,14 @@ class Relais:
         try:
             rep = self._http.request(methode, chemin, **kw)
         except httpx.HTTPError as e:
-            raise Injoignable(f"relais injoignable : {type(e).__name__}") from None
+            raise Injoignable(f"relais {self._http.base_url} injoignable : {type(e).__name__}") from None
         if rep.status_code == 402:
             raise AbonnementRequis("abonnement requis sur le relais")
         if rep.status_code >= 400 and rep.status_code != 404:
             try:
-                status = rep.json().get("status", "")
-            except ValueError:
+                d = rep.json()
+                status = d.get("status") or d.get("detail") or ""  # réponses construites : status ; HTTPException FastAPI : detail
+            except (ValueError, AttributeError):
                 status = ""
             raise Refus(rep.status_code, status)
         return rep

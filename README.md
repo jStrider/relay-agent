@@ -43,9 +43,10 @@ Depuis le conteneur : `POST /sync`, `POST /rafraichir`, `POST /seance` avec `{"a
 Claude Desktop (`claude_desktop_config.json`) ou Cursor (`.cursor/mcp.json`) :
 
 ```json
-{"mcpServers": {"relay": {"command": "relay-agent", "args": ["mcp", "--dest", "/Users/moi/relay"],
-                          "env": {"RELAY_PHRASE": "relay1:…"}}}}
+{"mcpServers": {"relay": {"command": "relay-agent", "args": ["mcp", "--dest", "/Users/moi/relay"]}}}
 ```
+
+La phrase vient de `~/.config/relay/phrase` (mode 600) : ne la mets pas dans ce fichier de configuration, souvent lisible par d'autres. `RELAY_PHRASE` reste pour les conteneurs.
 
 Outils : `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s)`, `retirer(id)`, `rafraichir`.
 

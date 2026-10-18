@@ -55,3 +55,16 @@ def test_cli_injoignable_sort_en_3(tmp_path, capsys):
 def test_cli_rafraichir_imprime_le_dict(relais, tmp_path, capsys):
     code, out, _ = lancer(["rafraichir"], {"RELAY_PHRASE": PHRASE, "RELAY_URL": relais.url}, capsys)
     assert code == 0 and json.loads(out)["http"] == 200
+
+
+def test_cli_resume_sans_relais_imprime_quand_meme(tmp_path, capsys):
+    (tmp_path / "sante" / "metriques").mkdir(parents=True)
+    (tmp_path / "sante" / "seances").mkdir()
+    code, out, err = lancer(["resume", "--dest", str(tmp_path)], {"RELAY_PHRASE": PHRASE, "RELAY_URL": "http://127.0.0.1:1"}, capsys)
+    assert code == 0 and out.startswith("# Résumé santé") and "injoignable" in err
+
+
+def test_cli_seance_dest_avec_egal(relais, tmp_path, capsys):
+    env = {"RELAY_PHRASE": PHRASE, "RELAY_URL": relais.url}
+    code, out, err = lancer(["seance", "lister", f"--dest={tmp_path}"], env, capsys)
+    assert code == 0 and "aucune séance" in out

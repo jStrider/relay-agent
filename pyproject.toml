@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Client agent de Relay : déchiffre les données Santé et planifie les séances (fichiers, ligne de commande, MCP)"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["cryptography>=42", "httpx>=0.27", "mcp>=1.2"]
+readme = "README.md"
+dependencies = ["cryptography>=42", "httpx>=0.27", "mcp>=2"]
+
+[project.urls]
+Source = "https://github.com/jStrider/relay-agent"
 
 [project.scripts]
 relay-agent = "relay_agent.cli:main"

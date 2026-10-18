@@ -3,6 +3,7 @@ locale ou de pont Docker, et n'offre que sync, rafraichir, seance et etat. Rien 
 
 import ipaddress
 import json
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -22,6 +23,7 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path) -> ThreadingHTTPS
     if not adresse_autorisee(adresse):
         raise ValueError(f"le pont n'écoute que sur une adresse locale ou de pont Docker, pas {adresse!r}")
     dest = Path(dest)
+    verrou = threading.Lock()  # un seul accès à dest/ à la fois : deux /sync simultanés se marcheraient dessus
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -37,13 +39,14 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path) -> ThreadingHTTPS
 
         def do_GET(self):
             if self.path.rstrip("/") == "/etat":
-                etat = dest / "sante" / "etat.json"
-                if not etat.exists():
-                    return self.repondre(404, {"status": "aucune synchro"})
-                try:
-                    return self.repondre(200, json.loads(etat.read_text()))
-                except ValueError:
-                    return self.repondre(500, {"status": "etat.json illisible"})
+                with verrou:
+                    etat = dest / "sante" / "etat.json"
+                    if not etat.exists():
+                        return self.repondre(404, {"status": "aucune synchro"})
+                    try:
+                        return self.repondre(200, json.loads(etat.read_text()))
+                    except ValueError:
+                        return self.repondre(500, {"status": "etat.json illisible"})
             self.repondre(404, {"status": "introuvable"})
 
         def do_POST(self):
@@ -52,8 +55,9 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path) -> ThreadingHTTPS
             corps = self.rfile.read(longueur) if longueur else b""
             try:
                 if chemin == "/sync":
-                    rapport = sync.synchroniser(relais, dest, journal=lambda m: None)
-                    return self.repondre(200, {"blobs_lus": rapport.blobs_lus, "blobs_ignores": rapport.blobs_ignores, "erreurs": rapport.erreurs})
+                    with verrou:
+                        rapport = sync.synchroniser(relais, dest, journal=lambda m: None)
+                    return self.repondre(200, {"blobs_lus": rapport.blobs_lus, "blobs_ignores": rapport.blobs_ignores})
                 if chemin == "/rafraichir":
                     return self.repondre(200, rafraichir.demander(relais))
                 if chemin == "/seance":
@@ -62,7 +66,8 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path) -> ThreadingHTTPS
                         args = json.loads(corps or b"{}").get("args", [])
                     except ValueError:
                         return self.repondre(400, {"status": "JSON attendu : {\"args\": [...]}"})
-                    code, sortie = executer_seance([str(a) for a in args], dest, relais)
+                    with verrou:
+                        code, sortie = executer_seance([str(a) for a in args], dest, relais)
                     return self.repondre(200, {"code": code, "sortie": sortie})
             except Exception as e:  # jamais de trace, jamais la phrase
                 return self.repondre(500, {"status": f"erreur : {type(e).__name__}"})

@@ -5,7 +5,7 @@ import base64
 import os
 import re
 import stat
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 CHEMIN_DEFAUT = Path.home() / ".config" / "relay" / "phrase"
@@ -15,8 +15,8 @@ URL_DEFAUT = "https://relay.example.invalid"  # remplacée par le relais de Juli
 @dataclass(frozen=True)
 class Identite:
     id: str
-    jeton: str
-    cle: bytes
+    jeton: str = field(repr=False)  # jamais dans une trace ni un journal
+    cle: bytes = field(repr=False)
 
 
 def analyser(texte: str) -> Identite:

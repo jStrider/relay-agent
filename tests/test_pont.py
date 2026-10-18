@@ -75,3 +75,17 @@ def test_pont_ne_renvoie_jamais_la_phrase(monde):
 def test_pont_404_ailleurs(monde):
     url, f, dest = monde
     assert appel(url, "GET", "/autre")[0] == 404
+
+
+def test_pont_seance_explique_les_arguments_manquants(monde):
+    url, f, dest = monde
+    code, corps = appel(url, "POST", "/seance", {"args": ["ajouter", "--id", "2099-01-01-a"]})
+    assert code == 200 and json.loads(corps)["code"] == 2 and "--nom" in json.loads(corps)["sortie"]
+
+
+def test_pont_syncs_simultanes_tous_200(monde):
+    url, f, dest = monde
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(8) as ex:
+        codes = list(ex.map(lambda _: appel(url, "POST", "/sync")[0], range(8)))
+    assert codes == [200] * 8

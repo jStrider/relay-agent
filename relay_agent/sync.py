@@ -15,7 +15,6 @@ ETAT_SYNC = Path(".relay") / "sync.json"
 class Rapport:
     blobs_lus: int = 0
     blobs_ignores: list[str] = field(default_factory=list)
-    erreurs: list[str] = field(default_factory=list)
 
 
 def _ecrire(chemin: Path, contenu: bytes) -> None:

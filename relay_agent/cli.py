@@ -17,9 +17,19 @@ def _relais(env) -> client.Relais:
     return client.Relais(phrase.url(env), phrase.charger(env=env, chemin=Path(env.get("HOME", str(Path.home()))) / ".config" / "relay" / "phrase"))
 
 
+class _Analyseur(argparse.ArgumentParser):
+    """argparse qui renvoie ses messages au lieu de les écrire sur stderr : le pont les transmet à l'agent."""
+
+    def error(self, message):
+        raise argparse.ArgumentError(None, f"{message}\n{self.format_usage()}")
+
+    def exit(self, status=0, message=None):
+        raise argparse.ArgumentError(None, message or self.format_help())
+
+
 def executer_seance(args: list[str], dest: Path, relais: client.Relais) -> tuple[int, str]:
     """Sous-commandes de séance, en (code, sortie texte) : la CLI et le pont s'en servent."""
-    p = argparse.ArgumentParser(prog="relay-agent seance", add_help=True, exit_on_error=False)
+    p = _Analyseur(prog="relay-agent seance", add_help=True, exit_on_error=False)
     sub = p.add_subparsers(dest="commande", required=True)
     a = sub.add_parser("ajouter")
     a.add_argument("--id", required=True)
@@ -34,8 +44,8 @@ def executer_seance(args: list[str], dest: Path, relais: client.Relais) -> tuple
     sub.add_parser("purger")
     try:
         n = p.parse_args(args)
-    except (argparse.ArgumentError, SystemExit) as e:
-        return 2, f"arguments refusés : {e}"
+    except argparse.ArgumentError as e:
+        return 2, f"arguments refusés : {e.message}"
     try:
         if n.commande == "ajouter":
             liste = seance.ajouter(dest, relais, n.id, n.nom, n.date, n.bloc, n.echauffement, n.retour_calme)
@@ -85,7 +95,11 @@ def main(argv: list[str] | None = None, env=None) -> int:
             return 0
         if n.commande == "resume":
             reponse = None if n.sans_rafraichir else rafraichir.demander(relais)
-            sync.synchroniser(relais, n.dest, journal=lambda m: None)  # le résumé lit toujours l'archive à jour
+            try:
+                sync.synchroniser(relais, n.dest, journal=lambda m: None)  # le résumé lit toujours l'archive à jour
+            except (client.Injoignable, client.Refus) as e:  # le résumé se calcule quand même, sur l'archive locale
+                print(f"synchro impossible, résumé sur l'archive locale : {e}", file=sys.stderr)
+                reponse = reponse or {"http": 0, "corps": None, "erreur": str(e)}
             print(resume.resume(n.dest, PARIS_NOW(), PARIS_NOW().date(), reponse))
             return 0
         if n.commande == "seance":
@@ -94,6 +108,11 @@ def main(argv: list[str] | None = None, env=None) -> int:
                 i = args.index("--dest")
                 n.dest = Path(args[i + 1])
                 del args[i:i + 2]
+            for i, a in enumerate(args):
+                if a.startswith("--dest="):
+                    n.dest = Path(a.split("=", 1)[1])
+                    del args[i]
+                    break
             code, sortie = executer_seance(args, n.dest, relais)
             print(sortie, file=sys.stderr if code else sys.stdout)
             return code

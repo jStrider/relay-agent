@@ -65,3 +65,16 @@ def test_erreur_lisible_sans_trace(serveur):
 def test_resume_sans_rafraichir(serveur):
     s, f, dest = serveur
     assert appeler(s, "resume", sans_rafraichir=True).startswith("# Résumé santé")
+
+
+def test_resume_mcp_sans_relais_renvoie_le_resume(tmp_path):
+    (tmp_path / "sante" / "metriques").mkdir(parents=True)
+    (tmp_path / "sante" / "seances").mkdir()
+    s = mcp_serveur.creer(client.Relais("http://127.0.0.1:1", IDENTITE), tmp_path)
+    assert appeler(s, "resume", sans_rafraichir=True).startswith("# Résumé santé")
+
+
+def test_metriques_nom_valide_seulement(serveur):
+    s, f, dest = serveur
+    assert "refusé" in appeler(s, "metriques", nom="../../etc/passwd")
+    assert "refusé" in appeler(s, "metriques", nom="Step Count")

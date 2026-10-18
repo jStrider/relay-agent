@@ -2,6 +2,7 @@
 Cursor ou tout client MCP. Chaque outil synchronise avant de lire ; les erreurs reviennent en texte, jamais en trace."""
 
 import json
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,8 +30,8 @@ def creer(relais: Relais, dest: Path) -> MCPServer:
             return f"relais injoignable : {e}"
         except client.Refus as e:
             return f"relais : {e}"
-        except OSError as e:
-            return f"erreur de fichier : {type(e).__name__}"
+        except (OSError, ValueError) as e:
+            return f"fichier local illisible : {type(e).__name__}"
 
     @s.tool(description="Heure de la dernière synchro de l'app et du dernier échantillon par type (contenu de etat.json).")
     def etat() -> str:
@@ -40,11 +41,14 @@ def creer(relais: Relais, dest: Path) -> MCPServer:
             return chemin.read_text() if chemin.exists() else "aucune synchro reçue"
         return _texte(f)
 
-    @s.tool(name="resume", description="Résumé santé calculé : sommeil, récupération, activité, nutrition, poids, séances, avec l'heure des données.")
+    @s.tool(name="resume", description="Résumé santé calculé : sommeil, récupération, activité, nutrition, poids, séances, avec l'heure des données. Sans sans_rafraichir=true, demande d'abord une synchro à l'iPhone (jusqu'à 25 s).")
     def resume_(sans_rafraichir: bool = False) -> str:
         def f():
             reponse = None if sans_rafraichir else rafraichir.demander(relais)
-            _sync()
+            try:
+                _sync()
+            except (client.Injoignable, client.Refus) as e:  # résumé sur l'archive locale, daté
+                reponse = reponse or {"http": 0, "corps": None, "erreur": str(e)}
             maintenant = datetime.now().astimezone()
             return resume.resume(dest, maintenant, maintenant.date(), reponse)
         return _texte(f)
@@ -52,6 +56,8 @@ def creer(relais: Relais, dest: Path) -> MCPServer:
     @s.tool(description="Points journaliers d'une métrique (step_count, dietary_energy, protein, weight_body_mass, sleep_analysis…) sur N jours.")
     def metriques(nom: str, jours: int = 7) -> str:
         def f():
+            if not re.fullmatch(r"[a-z_]+", nom):
+                return f"nom de métrique refusé : {nom!r} (lettres minuscules et _ seulement, par exemple step_count)"
             _sync()
             chemin = dest / "sante" / "metriques" / f"{nom}.json"
             if not chemin.exists():

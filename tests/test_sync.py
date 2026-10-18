@@ -31,7 +31,7 @@ def test_premiere_synchro_ecrit_tout(relais, tmp_path):
     deposer(relais, "etat.json", {"synced_at": "x"})
     deposer(relais, "prevu.json", {"seances": [{"id": "2026-10-21-frac", "nom": "Frac", "date": "2026-10-21T18:30:00+02:00"}]})
     rapport = sync.synchroniser(client.Relais(relais.url, IDENTITE), tmp_path, journal=lambda *a: None)
-    assert rapport.blobs_lus == 5 and rapport.erreurs == []
+    assert rapport.blobs_lus == 5 and rapport.blobs_ignores == []
     pas = json.loads((tmp_path / "sante" / "metriques" / "step_count.json").read_text())
     assert [p["qty"] for p in pas["data"]] == [9000, 10000]
     seance = json.loads((tmp_path / "sante" / "seances" / "2026-10-21-W1.json").read_text())

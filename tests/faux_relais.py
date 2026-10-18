@@ -26,7 +26,7 @@ class FauxRelais:
 
             def autorise(self):
                 if self.headers.get("Authorization") != f"Bearer {relais.jeton}":
-                    self.envoyer(401, b'{"status":"jeton invalide"}')
+                    self.envoyer(401, b'{"detail":"jeton invalide"}')  # format FastAPI (HTTPException)
                     return False
                 return True
 
@@ -52,7 +52,7 @@ class FauxRelais:
                 nom = self.path[len("/blobs/"):]
                 corps = self.rfile.read(int(self.headers.get("Content-Length") or 0))
                 if nom == "prevu.json" and not relais.abonne:
-                    return self.envoyer(402, b'{"status":"abonnement requis"}')
+                    return self.envoyer(402, b'{"detail":"abonnement requis"}')
                 relais.blobs[nom] = (corps, time.time())
                 self.envoyer(200, json.dumps({"maj": relais.blobs[nom][1]}).encode())
 
@@ -69,7 +69,7 @@ class FauxRelais:
                     return
                 if self.path == "/rafraichir":
                     if not relais.abonne:
-                        return self.envoyer(402, b'{"status":"abonnement requis"}')
+                        return self.envoyer(402, b'{"detail":"abonnement requis"}')
                     code, corps = relais.reponse_rafraichir
                     return self.envoyer(code, json.dumps(corps).encode())
                 self.envoyer(404, b"{}")

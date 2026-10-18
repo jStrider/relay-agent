@@ -44,7 +44,7 @@ def test_jeton_refuse(relais):
     r = client.Relais(relais.url, Identite(IDENTITE.id, "b" * 43, IDENTITE.cle))
     with pytest.raises(client.Refus) as e:
         r.lister()
-    assert e.value.code == 401
+    assert e.value.code == 401 and e.value.status == "jeton invalide"  # corps FastAPI {"detail": ...}
 
 
 def test_rafraichir_renvoie_code_et_corps(relais):
