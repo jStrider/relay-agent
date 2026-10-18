@@ -1,9 +1,54 @@
 # relay-agent
 
-Client de [Relay](https://github.com/jStrider/relay) pour un agent IA : il tire les données Santé que l'app a déposées chiffrées sur le relais, les déchiffre avec la phrase d'appairage et les écrit en fichiers ; il planifie les séances de course qui partent sur la montre ; il demande un rafraîchissement ; il sert un pont sans secret à un agent en bac à sable et un serveur MCP.
+Client de [Relay](https://github.com/jStrider/relay) pour un agent IA. L'app Relay dépose sur un relais les données Apple Health de son utilisateur, chiffrées avec une clé qui ne quitte pas l'iPhone. Ce client les déchiffre avec la phrase d'appairage, les écrit en fichiers lisibles par l'agent, planifie les séances de course qui partent sur la montre, et demande un rafraîchissement à l'iPhone. Il existe en ligne de commande, en pont sans secret pour un agent en bac à sable, et en serveur MCP.
+
+## Installation et appairage
 
 ```sh
-pip install relay-agent
-export RELAY_PHRASE='relay1:…'      # ou ~/.config/relay/phrase en mode 600
-relay-agent sync --dest /workspace
+pip install relay-agent            # ou : uv tool install relay-agent
+mkdir -p ~/.config/relay && (umask 077; printf '%s' 'relay1:…' > ~/.config/relay/phrase)
+export RELAY_URL=https://relay.<domaine>   # inutile avec le relais par défaut
 ```
+
+La phrase `relay1:<id>:<jeton>:<cle>` s'affiche dans l'app, onglet Réglages, en texte et en QR. Elle donne accès à toutes les données : le client refuse un fichier lisible par d'autres utilisateurs. `RELAY_PHRASE` remplace le fichier.
+
+## Ligne de commande
+
+| Commande | Effet | Sortie |
+|---|---|---|
+| `relay-agent sync --dest D` | Tire et déchiffre les blobs modifiés, écrit `D/sante/metriques/<nom>.json`, `D/sante/seances/*.json`, `D/sante/etat.json`, `D/coach/prevu.json` | résumé sur stderr |
+| `relay-agent resume --dest D [--sans-rafraichir]` | Demande une synchro fraîche à l'iPhone, synchronise, imprime le résumé santé daté | texte |
+| `relay-agent rafraichir` | Réveille l'iPhone et attend sa synchro | `{"http": 200, "corps": {…}, "erreur": null}` |
+| `relay-agent seance ajouter --id 2026-10-21-frac-6x3 --nom "Frac 6 × 3 min" --date 2026-10-21T18:30:00+02:00 --echauffement 600 --bloc "6x effort:180@4:25-4:40 recup:120" --retour-calme 600 --dest D` | Planifie une séance (local puis relais) | liste des séances |
+| `relay-agent seance retirer <id>` · `lister` · `purger` | Retire, liste, retire les séances passées | liste des séances |
+| `relay-agent pont --ecoute 172.17.0.1:8771 --dest D` | Pont HTTP sans secret pour un conteneur | journal sur stderr |
+| `relay-agent mcp --dest D` | Serveur MCP sur stdio | |
+
+Une étape de bloc est `effort:` ou `recup:` suivi d'une durée en secondes ou d'une distance (`400m`), avec `@allure` optionnelle en min/km (`4:25-4:40`) ou en s/km (`265-280`). Même `id` = la séance est remplacée.
+
+Codes de sortie : 0 succès, 2 usage ou validation, 3 relais injoignable, 4 abonnement requis.
+
+## Pont pour un agent en bac à sable
+
+Le client tourne sur l'hôte avec la phrase ; le conteneur n'a ni phrase ni réseau sortant à ouvrir :
+
+```sh
+relay-agent pont --ecoute 172.17.0.1:8771 --dest /home/agent/workspace
+```
+
+Depuis le conteneur : `POST /sync`, `POST /rafraichir`, `POST /seance` avec `{"args": ["ajouter", "--id", …]}`, `GET /etat`. Le pont refuse d'écouter sur `0.0.0.0`.
+
+## Serveur MCP
+
+Claude Desktop (`claude_desktop_config.json`) ou Cursor (`.cursor/mcp.json`) :
+
+```json
+{"mcpServers": {"relay": {"command": "relay-agent", "args": ["mcp", "--dest", "/Users/moi/relay"],
+                          "env": {"RELAY_PHRASE": "relay1:…"}}}}
+```
+
+Outils : `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s)`, `retirer(id)`, `rafraichir`.
+
+## Développement
+
+`uv sync`, `uv run pytest -q`. Le contrat de chiffrement est dans `vecteurs/chiffrement.json`, copie de celui publié par `relay-serveur`.
