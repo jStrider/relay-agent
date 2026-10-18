@@ -1,0 +1,28 @@
+[project]
+name = "relay-agent"
+version = "0.1.0"
+description = "Client agent de Relay : déchiffre les données Santé et planifie les séances (fichiers, ligne de commande, MCP)"
+requires-python = ">=3.11"
+license = "MIT"
+readme = "README.md"
+dependencies = ["cryptography>=42", "httpx>=0.27", "mcp>=2"]
+
+[project.urls]
+Source = "https://github.com/jStrider/relay-agent"
+
+[project.scripts]
+relay-agent = "relay_agent.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["relay_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
