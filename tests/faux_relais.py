@@ -12,6 +12,7 @@ class FauxRelais:
         self.appairages: dict[str, dict] = {}
         self.jeton, self.abonne, self.reponse_rafraichir = jeton, abonne, rafraichir
         self.requetes = []
+        self.refuser_429 = 0
         relais = self
 
         class H(BaseHTTPRequestHandler):
@@ -26,6 +27,10 @@ class FauxRelais:
                 self.wfile.write(corps)
 
             def autorise(self):
+                if relais.refuser_429 > 0:
+                    relais.refuser_429 -= 1
+                    self.envoyer(429, '{"status":"trop de requetes"}'.encode())
+                    return False
                 if self.headers.get("Authorization") != f"Bearer {relais.jeton}":
                     self.envoyer(401, b'{"detail":"jeton invalide"}')  # format FastAPI (HTTPException)
                     return False

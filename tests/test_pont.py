@@ -17,7 +17,7 @@ def monde(tmp_path):
     f = FauxRelais()
     r = client.Relais(f.url, IDENTITE)
     r.deposer("etat.json", b'{"synced_at": "2026-10-18 20:00:00 +0200"}')
-    serveur = pont.creer("127.0.0.1", 0, r, tmp_path)
+    serveur = pont.creer("127.0.0.1", 0, r, tmp_path, phrase_chemin=tmp_path / "phrase-pont")
     threading.Thread(target=serveur.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{serveur.server_address[1]}"
     yield url, f, tmp_path
@@ -109,3 +109,4 @@ def test_pont_relier_etats(monde):
             break
     assert etat["etat"] == "appairé" and etat.get("code") == f.codes_app
     assert "relay1:" not in json.dumps(etat)
+    assert (dest / "phrase-pont").read_text() == V["phrase"]  # jamais le vrai ~/.config/relay/phrase

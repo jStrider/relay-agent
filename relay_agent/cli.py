@@ -148,7 +148,7 @@ def main(argv: list[str] | None = None, env=None) -> int:
         if n.commande == "pont":
             from . import pont
             hote, port = n.ecoute.rsplit(":", 1)
-            serveur = pont.creer(hote, int(port), relais, n.dest)
+            serveur = pont.creer(hote, int(port), relais, n.dest, Path(env.get("HOME", str(Path.home()))) / ".config" / "relay" / "phrase")
             print(f"pont sur {n.ecoute}, dest {n.dest}", file=sys.stderr)
             serveur.serve_forever()
             return 0

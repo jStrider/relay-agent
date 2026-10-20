@@ -51,3 +51,21 @@ def test_rafraichir_renvoie_code_et_corps(relais):
     relais.reponse_rafraichir = (504, {"rafraichi": False, "status": "pas de réponse"})
     code, corps = client.Relais(relais.url, IDENTITE).rafraichir()
     assert (code, corps["status"]) == (504, "pas de réponse")
+
+
+def test_429_attend_puis_reprend(relais, monkeypatch):
+    from relay_agent import client as module
+    monkeypatch.setattr(module.time, "sleep", lambda s: None)
+    relais.refuser_429 = 2  # les deux prochaines requêtes répondent 429
+    r = client.Relais(relais.url, IDENTITE)
+    r.deposer("etat.json", b"{}")
+    assert r.lire("etat.json") == b"{}"
+
+
+def test_429_persistant_finit_par_echouer(relais, monkeypatch):
+    from relay_agent import client as module
+    monkeypatch.setattr(module.time, "sleep", lambda s: None)
+    relais.refuser_429 = 100
+    with pytest.raises(client.Refus) as e:
+        client.Relais(relais.url, IDENTITE).lister()
+    assert e.value.code == 429

@@ -19,7 +19,7 @@ def adresse_autorisee(adresse: str) -> bool:
     return ip.is_loopback or ip.is_private and not ip.is_unspecified
 
 
-def creer(adresse: str, port: int, relais: Relais, dest: Path) -> ThreadingHTTPServer:
+def creer(adresse: str, port: int, relais: Relais, dest: Path, phrase_chemin: Path | None = None) -> ThreadingHTTPServer:
     if not adresse_autorisee(adresse):
         raise ValueError(f"le pont n'écoute que sur une adresse locale ou de pont Docker, pas {adresse!r}")
     dest = Path(dest)
@@ -31,7 +31,7 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path) -> ThreadingHTTPS
             etat["code"] = a.attendre_cle_app()
             etat["etat"] = "code"
             texte = a.attendre_identite()
-            appairage.enregistrer_phrase(texte, Path.home() / ".config" / "relay" / "phrase", forcer=True)
+            appairage.enregistrer_phrase(texte, phrase_chemin or Path.home() / ".config" / "relay" / "phrase", forcer=True)
             etat["etat"] = "appairé"
         except Exception as e:
             etat["etat"] = "expiré"
