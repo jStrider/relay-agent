@@ -89,3 +89,23 @@ def test_pont_syncs_simultanes_tous_200(monde):
     with concurrent.futures.ThreadPoolExecutor(8) as ex:
         codes = list(ex.map(lambda _: appel(url, "POST", "/sync")[0], range(8)))
     assert codes == [200] * 8
+
+
+def test_pont_relier_etats(monde):
+    from tests.test_appairage import jouer_l_app, V
+    url, f, dest = monde
+    code, corps = appel(url, "POST", "/relier")
+    assert code == 200
+    session = json.loads(corps)["session"]
+    assert session == "K7Q2-M6XA"
+    code, corps = appel(url, "GET", f"/relier/{session}")
+    assert json.loads(corps)["etat"] == "attente_app"
+    jouer_l_app(f, "K7Q2M6XA", V["phrase"], delai=0.3)
+    import time
+    for _ in range(40):
+        time.sleep(0.25)
+        etat = json.loads(appel(url, "GET", f"/relier/{session}")[1])
+        if etat["etat"] == "appairé":
+            break
+    assert etat["etat"] == "appairé" and etat.get("code") == f.codes_app
+    assert "relay1:" not in json.dumps(etat)

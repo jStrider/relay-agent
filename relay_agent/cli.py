@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import client, phrase, rafraichir, resume, seance, sync
+from . import appairage, client, phrase, rafraichir, resume, seance, sync
 
 PARIS_NOW = lambda: datetime.now().astimezone()  # noqa: E731
 
@@ -66,6 +66,30 @@ def executer_seance(args: list[str], dest: Path, relais: client.Relais) -> tuple
         return 3, str(e)
 
 
+def relier(env, forcer: bool, delai: float) -> int:
+    """Affiche la session à saisir dans l'app, puis le code à comparer, puis enregistre la phrase reçue."""
+    chemin = Path(env.get("HOME", str(Path.home()))) / ".config" / "relay" / "phrase"
+    if chemin.exists() and not forcer:
+        print(f"{chemin} existe déjà : relance avec --oui pour la remplacer", file=sys.stderr)
+        return 2
+    a = appairage.Appairage(phrase.url(env))
+    try:
+        session = a.ouvrir()
+        print(f"Dans l'app Relay, « Relier un agent », saisis : {session[:4]}-{session[4:]}", flush=True)
+        code = a.attendre_cle_app(delai=delai)
+        print(f"Code à comparer avec celui de l'app : {code}", flush=True)
+        texte = a.attendre_identite(delai=delai)
+    except (TimeoutError, ValueError) as e:
+        print(str(e), file=sys.stderr)
+        return 3
+    except Exception as e:  # réseau
+        print(f"relais injoignable : {type(e).__name__}", file=sys.stderr)
+        return 3
+    appairage.enregistrer_phrase(texte, chemin, forcer=True)
+    print(f"Appairé : phrase enregistrée dans {chemin}")
+    return 0
+
+
 def main(argv: list[str] | None = None, env=None) -> int:
     env = os.environ if env is None else env
     p = argparse.ArgumentParser(prog="relay-agent", description=__doc__)
@@ -80,7 +104,12 @@ def main(argv: list[str] | None = None, env=None) -> int:
         if nom == "seance":
             s.add_argument("args", nargs=argparse.REMAINDER)
     sub.add_parser("rafraichir")
+    rel = sub.add_parser("relier", help="relier cet agent à l'app par un code court, sans manipuler la phrase")
+    rel.add_argument("--oui", action="store_true", help="remplacer une phrase déjà enregistrée")
+    rel.add_argument("--delai", type=float, default=600, help="secondes d'attente de l'app")
     n = p.parse_args(argv)
+    if n.commande == "relier":
+        return relier(env, n.oui, n.delai)
     try:
         relais = _relais(env)
     except (ValueError, PermissionError) as e:

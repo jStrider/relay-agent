@@ -12,6 +12,17 @@ export RELAY_URL=https://relay.<domaine>   # inutile avec le relais par défaut
 
 La phrase `relay1:<id>:<jeton>:<cle>` s'affiche dans l'app, onglet Réglages, en texte et en QR. Elle donne accès à toutes les données : le client refuse un fichier lisible par d'autres utilisateurs. `RELAY_PHRASE` remplace le fichier.
 
+## Relier un agent par code court (recommandé)
+
+```sh
+relay-agent relier
+# Dans l'app Relay, « Relier un agent », saisis : K7Q2-M6XA
+# Code à comparer avec celui de l'app : 327365
+# Appairé : phrase enregistrée dans ~/.config/relay/phrase
+```
+
+L'agent et l'app échangent des clés éphémères par le relais, affichent le même code à six chiffres, et la phrase passe chiffrée dès que tu confirmes dans l'app. Le relais ne voit que du chiffré. `--oui` remplace une phrase déjà enregistrée. Depuis le pont : `POST /relier` renvoie la session, `GET /relier/<session>` donne l'état (`attente_app`, `code`, `appairé`, `expiré`) et le code.
+
 ## Ligne de commande
 
 | Commande | Effet | Sortie |
@@ -23,6 +34,7 @@ La phrase `relay1:<id>:<jeton>:<cle>` s'affiche dans l'app, onglet Réglages, en
 | `relay-agent seance retirer <id>` · `lister` · `purger` | Retire, liste, retire les séances passées | liste des séances |
 | `relay-agent pont --ecoute 172.17.0.1:8771 --dest D` | Pont HTTP sans secret pour un conteneur | journal sur stderr |
 | `relay-agent mcp --dest D` | Serveur MCP sur stdio | |
+| `relay-agent relier [--oui]` | Appairage par code court (voir plus haut) | session, code, confirmation |
 
 Une étape de bloc est `effort:` ou `recup:` suivi d'une durée en secondes ou d'une distance (`400m`), avec `@allure` optionnelle en min/km (`4:25-4:40`) ou en s/km (`265-280`). Même `id` = la séance est remplacée.
 

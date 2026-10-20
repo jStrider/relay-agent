@@ -68,3 +68,24 @@ def test_cli_seance_dest_avec_egal(relais, tmp_path, capsys):
     env = {"RELAY_PHRASE": PHRASE, "RELAY_URL": relais.url}
     code, out, err = lancer(["seance", "lister", f"--dest={tmp_path}"], env, capsys)
     assert code == 0 and "aucune séance" in out
+
+
+def test_cli_relier_ecrit_la_phrase(relais, tmp_path, capsys):
+    from tests.test_appairage import jouer_l_app, V
+    env = {"RELAY_URL": relais.url, "HOME": str(tmp_path)}
+    import threading
+    threading.Timer(0.5, lambda: jouer_l_app(relais, "K7Q2M6XA", V["phrase"], delai=0.2)).start()
+    code = cli.main(["relier", "--oui", "--delai", "8"], env=env)
+    out, err = capsys.readouterr()
+    assert code == 0, err
+    assert "K7Q2-M6XA" in out and relais.codes_app in out
+    assert (tmp_path / ".config" / "relay" / "phrase").read_text() == V["phrase"]
+
+
+def test_cli_relier_refuse_d_ecraser_sans_oui(relais, tmp_path, capsys):
+    chemin = tmp_path / ".config" / "relay" / "phrase"
+    chemin.parent.mkdir(parents=True)
+    chemin.write_text("ancienne")
+    code = cli.main(["relier", "--delai", "1"], env={"RELAY_URL": relais.url, "HOME": str(tmp_path)})
+    out, err = capsys.readouterr()
+    assert code == 2 and "--oui" in err and chemin.read_text() == "ancienne"
