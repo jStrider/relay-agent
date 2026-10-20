@@ -9,8 +9,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 class FauxRelais:
     def __init__(self, jeton="a" * 43, abonne=True, rafraichir=(200, {"rafraichi": True, "status": "rafraîchi"})):
         self.blobs: dict[str, tuple[bytes, float]] = {}
+        self.appairages: dict[str, dict] = {}
         self.jeton, self.abonne, self.reponse_rafraichir = jeton, abonne, rafraichir
         self.requetes = []
+        self.refuser_429 = 0
         relais = self
 
         class H(BaseHTTPRequestHandler):
@@ -25,6 +27,10 @@ class FauxRelais:
                 self.wfile.write(corps)
 
             def autorise(self):
+                if relais.refuser_429 > 0:
+                    relais.refuser_429 -= 1
+                    self.envoyer(429, '{"status":"trop de requetes"}'.encode())
+                    return False
                 if self.headers.get("Authorization") != f"Bearer {relais.jeton}":
                     self.envoyer(401, b'{"detail":"jeton invalide"}')  # format FastAPI (HTTPException)
                     return False
@@ -32,6 +38,11 @@ class FauxRelais:
 
             def do_GET(self):
                 relais.requetes.append(("GET", self.path))
+                if self.path.startswith("/appairages/"):
+                    s = relais.appairages.get(self.path.split("/")[2].upper().replace("-", ""))
+                    if s is None:
+                        return self.envoyer(404, b'{"detail":"session inconnue"}')
+                    return self.envoyer(200, json.dumps({"cle_publique_agent": s["agent"], "cle_publique_app": s.get("app"), "identite_chiffree": s.get("identite")}).encode())
                 if not self.autorise():
                     return
                 if self.path.startswith("/blobs?") or self.path == "/blobs":
@@ -47,6 +58,19 @@ class FauxRelais:
 
             def do_PUT(self):
                 relais.requetes.append(("PUT", self.path))
+                if self.path.startswith("/appairages/"):
+                    _, _, session, quoi = self.path.split("/")
+                    s = relais.appairages.get(session.upper().replace("-", ""))
+                    corps = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+                    if s is None:
+                        return self.envoyer(404, b'{"detail":"session inconnue"}')
+                    if quoi == "app":
+                        if s.get("app"):
+                            return self.envoyer(409, b'{"detail":"posee"}')
+                        s["app"] = corps["cle_publique_app"]
+                    else:
+                        s["identite"] = corps["identite_chiffree"]
+                    return self.envoyer(200, b'{"status":"ok"}')
                 if not self.autorise():
                     return
                 nom = self.path[len("/blobs/"):]
@@ -58,6 +82,8 @@ class FauxRelais:
 
             def do_DELETE(self):
                 relais.requetes.append(("DELETE", self.path))
+                if self.path.startswith("/appairages/"):
+                    return self.envoyer(204 if relais.appairages.pop(self.path.split("/")[2].upper(), None) else 404)
                 if not self.autorise():
                     return
                 nom = self.path[len("/blobs/"):]
@@ -65,6 +91,11 @@ class FauxRelais:
 
             def do_POST(self):
                 relais.requetes.append(("POST", self.path))
+                if self.path == "/appairages":
+                    corps = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+                    session = "K7Q2M6XA" if not relais.appairages else "ABCDEFGH"
+                    relais.appairages[session] = {"agent": corps["cle_publique_agent"]}
+                    return self.envoyer(201, json.dumps({"session": session}).encode())
                 if not self.autorise():
                     return
                 if self.path == "/rafraichir":

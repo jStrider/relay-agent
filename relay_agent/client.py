@@ -1,6 +1,7 @@
 """Client HTTP du relais : chiffre avant de déposer, déchiffre après avoir lu, traduit les codes en exceptions."""
 
 import json
+import time
 
 import httpx
 
@@ -28,10 +29,14 @@ class Relais:
         self._http = httpx.Client(base_url=url.rstrip("/"), headers={"Authorization": f"Bearer {identite.jeton}"}, timeout=delai)
 
     def _requete(self, methode: str, chemin: str, **kw) -> httpx.Response:
-        try:
-            rep = self._http.request(methode, chemin, **kw)
-        except httpx.HTTPError as e:
-            raise Injoignable(f"relais {self._http.base_url} injoignable : {type(e).__name__}") from None
+        for essai in range(6):  # 429 : le relais limite le débit, on attend et on reprend (1, 2, 4, 8, 16 s)
+            try:
+                rep = self._http.request(methode, chemin, **kw)
+            except httpx.HTTPError as e:
+                raise Injoignable(f"relais {self._http.base_url} injoignable : {type(e).__name__}") from None
+            if rep.status_code != 429 or essai == 5:
+                break
+            time.sleep(float(rep.headers.get("Retry-After") or 2 ** essai))
         if rep.status_code == 402:
             raise AbonnementRequis("abonnement requis sur le relais")
         if rep.status_code >= 400 and rep.status_code != 404:

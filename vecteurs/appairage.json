@@ -1,0 +1,12 @@
+{
+ "session": "K7Q2M6XA",
+ "privee_agent": "e0f6f7ab663979800b6011056b46293d2ff99d1ad26cb2c4e72561cd30344559",
+ "publique_agent": "90d20c496536a896dda7c35c02cad9acf34344e1acbb51352f5652b86e24c272",
+ "privee_app": "0803e191024468295bb5bbe81ac9f12eea2f46fec3ea3e3ca8126352a06d8d50",
+ "publique_app": "7ecf797d4de22f3b486f4959f3630a37dae4fc8b12c5270dfcd96a7bc5f4dd3f",
+ "cle": "c944f8592e4fae871cb173a65e8384533acb24095798bca9fc63132d60008fde",
+ "code": "327365",
+ "phrase": "relay1:ABCDEFGHIJKLMNOPQRSTUVWXYZ:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+ "nonce": "b6ed5306d19b661067a90a1a",
+ "identite_chiffree": "b6ed5306d19b661067a90a1a573fd3126ca808bc91b9ea593a5238756f6fba418c986afebb23b184ff5609dbdf5acb136f4c0b8f9156d998441e53f958fc616fddacbc0c21c410b1902b210c138b5e0fdfbbaf8ee5dc1d8a08477fbecaeb6c7eab377ce119f29211e3bca6f72b315157770dd67603c65a1743466dd4880f417e2069db1facf5b9e4506ccaf549bfb1d217c751ffa9"
+}
