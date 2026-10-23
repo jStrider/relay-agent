@@ -96,4 +96,7 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path, phrase_chemin: Pa
                 return self.repondre(500, {"status": f"erreur : {type(e).__name__}"})
             self.repondre(404, {"status": "introuvable"})
 
-    return ThreadingHTTPServer((adresse, port), Handler)
+    class Serveur(ThreadingHTTPServer):
+        request_queue_size = 64  # 5 par défaut : des appels simultanés de l'agent seraient coupés à la connexion
+
+    return Serveur((adresse, port), Handler)
