@@ -51,7 +51,7 @@ def test_charger_sans_phrase(tmp_path):
 
 
 def test_url_par_defaut_et_env():
-    assert phrase.url({}).startswith("https://")
+    assert phrase.url({}) == "https://relay.relay-agent.app"
     assert phrase.url({"RELAY_URL": "http://127.0.0.1:8780/"}) == "http://127.0.0.1:8780"
 
 

@@ -1,14 +1,34 @@
 [project]
 name = "relay-agent"
 version = "0.1.0"
-description = "Client agent de Relay : déchiffre les données Santé et planifie les séances (fichiers, ligne de commande, MCP)"
+description = "Agent client for the Relay iPhone app: decrypts Apple Health data from the relay and schedules Apple Watch workouts (files, CLI, MCP)"
+authors = [{name = "Julien Renaud"}]
 requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
+keywords = ["apple-health", "healthkit", "apple-watch", "workouts", "running", "ai-agent", "mcp", "end-to-end-encryption"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Utilities",
+]
 dependencies = ["cryptography>=42", "httpx>=0.27", "mcp>=2"]
 
 [project.urls]
+Homepage = "https://relay-agent.app"
 Source = "https://github.com/jStrider/relay-agent"
+Issues = "https://github.com/jStrider/relay-agent/issues"
 
 [project.scripts]
 relay-agent = "relay_agent.cli:main"
@@ -22,6 +42,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["relay_agent"]
+
+[tool.hatch.build.targets.sdist]
+include = ["relay_agent", "tests/*.py", "vecteurs", "README.md", "README.fr.md", "LICENSE", "pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

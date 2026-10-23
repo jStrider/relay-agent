@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 CHEMIN_DEFAUT = Path.home() / ".config" / "relay" / "phrase"
-URL_DEFAUT = "https://relay.example.invalid"  # remplacée par le relais de Julien dès que le domaine est connu
+URL_DEFAUT = "https://relay.relay-agent.app"
 
 
 @dataclass(frozen=True)
