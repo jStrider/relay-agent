@@ -96,7 +96,7 @@ def ajouter(dest: Path, relais: Relais, id: str, nom: str, date: str, blocs: lis
         raise Validation("la date doit porter son décalage horaire, par exemple +02:00")
     if quand <= (maintenant or datetime.now().astimezone()):
         raise Validation(f"date passée : {date} ; une séance se planifie dans le futur")
-    s = {"id": id, "nom": nom, "date": quand.isoformat()}
+    s = {"id": id, "nom": nom, "date": quand.isoformat(timespec="seconds")}  # sans fraction : l'app la refuserait
     if echauffement:
         s["echauffement"] = {"duree_s": int(echauffement)}
     s["blocs"] = [_bloc(b) for b in blocs]

@@ -123,3 +123,10 @@ def test_injoignable_restaure(tmp_path):
     with pytest.raises(client.Injoignable):
         ajouter(tmp_path, r)
     assert not (tmp_path / "coach" / "prevu.json").exists()
+
+
+def test_date_ecrite_a_la_seconde(monde):
+    """Le décodeur ISO 8601 de l'app refuse les fractions de seconde : tout prevu.json deviendrait illisible."""
+    dest, r, f = monde
+    ajouter(dest, r, date="2026-10-21T18:30:00.5+02:00")
+    assert local(dest)[0]["date"] == "2026-10-21T18:30:00+02:00"
