@@ -1,9 +1,13 @@
 """Un relais en mémoire pour les tests : mêmes routes et codes que relay-serveur, sans chiffrement côté serveur."""
 
+import base64
+import hashlib
 import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 
 class FauxRelais:
@@ -13,6 +17,8 @@ class FauxRelais:
         self.jeton, self.abonne, self.reponse_rafraichir = jeton, abonne, rafraichir
         self.requetes = []
         self.refuser_429 = 0
+        self.substituer = None  # "app" ou "agent" : le relais présente à l'autre partie une clé à lui à la place de celle-ci
+        self.cle_intruse = base64.urlsafe_b64encode(X25519PrivateKey.generate().public_key().public_bytes_raw()).decode().rstrip("=")
         relais = self
 
         class H(BaseHTTPRequestHandler):
@@ -42,7 +48,13 @@ class FauxRelais:
                     s = relais.appairages.get(self.path.split("/")[2].upper().replace("-", ""))
                     if s is None:
                         return self.envoyer(404, b'{"detail":"session inconnue"}')
-                    return self.envoyer(200, json.dumps({"cle_publique_agent": s["agent"], "cle_publique_app": s.get("app"), "identite_chiffree": s.get("identite")}).encode())
+                    agent, app = s["agent"], s["app"]
+                    if relais.substituer == "agent" and agent:
+                        agent = relais.cle_intruse
+                    if relais.substituer == "app" and app:
+                        app = relais.cle_intruse
+                    return self.envoyer(200, json.dumps({"engagement": s["engagement"], "cle_publique_agent": agent, "cle_publique_app": app,
+                                                         "identite_chiffree": s["identite"]}).encode())
                 if not self.autorise():
                     return
                 if self.path.startswith("/blobs?") or self.path == "/blobs":
@@ -65,9 +77,17 @@ class FauxRelais:
                     if s is None:
                         return self.envoyer(404, b'{"detail":"session inconnue"}')
                     if quoi == "app":
-                        if s.get("app"):
+                        if s["app"]:
                             return self.envoyer(409, b'{"detail":"posee"}')
                         s["app"] = corps["cle_publique_app"]
+                    elif quoi == "agent":
+                        if not s["app"] or s["agent"]:
+                            return self.envoyer(409, b'{"detail":"cle de l app absente ou cle agent posee"}')
+                        cle = corps["cle_publique_agent"]
+                        hache = base64.urlsafe_b64encode(hashlib.sha256(base64.urlsafe_b64decode(cle + "=")).digest()).decode().rstrip("=")
+                        if hache != s["engagement"]:
+                            return self.envoyer(400, b'{"detail":"engagement non tenu"}')
+                        s["agent"] = cle
                     else:
                         s["identite"] = corps["identite_chiffree"]
                     return self.envoyer(200, b'{"status":"ok"}')
@@ -94,7 +114,7 @@ class FauxRelais:
                 if self.path == "/appairages":
                     corps = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
                     session = "K7Q2M6XA" if not relais.appairages else "ABCDEFGH"
-                    relais.appairages[session] = {"agent": corps["cle_publique_agent"]}
+                    relais.appairages[session] = {"engagement": corps["engagement"], "agent": None, "app": None, "identite": None}
                     return self.envoyer(201, json.dumps({"session": session}).encode())
                 if not self.autorise():
                     return

@@ -1,8 +1,12 @@
-"""Appairage par code court : l'agent ouvre une session sur le relais avec une clé X25519 éphémère, l'app pose la
-sienne, les deux dérivent la même clé et le même code à six chiffres ; l'utilisateur compare les codes et l'app
-dépose la phrase chiffrée. Le relais ne voit que des clés publiques et du chiffré."""
+"""Appairage par code court : l'agent ouvre une session sur le relais avec l'engagement (SHA-256) d'une clé X25519
+éphémère, l'app pose sa clé, puis l'agent révèle la sienne et l'app vérifie qu'elle tient l'engagement ; les deux
+dérivent la même clé et le même code à six chiffres, l'utilisateur compare les codes et l'app dépose la phrase
+chiffrée. Le relais ne voit que des clés publiques et du chiffré. L'engagement l'oblige à choisir la clé qu'il
+présenterait à l'agent sans connaître celle de l'agent : il ne peut plus chercher par force brute deux échanges
+qui donnent le même code."""
 
 import base64
+import hashlib
 import os
 import stat
 import time
@@ -22,6 +26,11 @@ def _b64(data: bytes) -> str:
 
 def _unb64(texte: str) -> bytes:
     return base64.urlsafe_b64decode(texte + "=" * (-len(texte) % 4))
+
+
+def engagement(cle_publique: bytes) -> str:
+    """SHA-256 de la clé publique brute (32 octets), en base64url sans remplissage."""
+    return _b64(hashlib.sha256(cle_publique).digest())
 
 
 def deriver(secret: bytes, session: str) -> tuple[bytes, str]:
@@ -65,7 +74,7 @@ class Appairage:
         self._cle: bytes | None = None
 
     def ouvrir(self) -> str:
-        rep = self._http.post("/appairages", json={"cle_publique_agent": _b64(self._privee.public_key().public_bytes_raw())})
+        rep = self._http.post("/appairages", json={"engagement": engagement(self._privee.public_key().public_bytes_raw())})
         rep.raise_for_status()
         self.session = rep.json()["session"]
         return self.session
@@ -78,11 +87,15 @@ class Appairage:
         return rep.json()
 
     def attendre_cle_app(self, delai: float = 600) -> str:
-        """Code à six chiffres dès que l'app a posé sa clé ; TimeoutError sinon."""
+        """Dès que l'app a posé sa clé : révèle celle de l'agent, puis rend le code à six chiffres ; TimeoutError sinon."""
         fin = time.time() + delai
         while time.time() < fin:
             etat = self._etat()
             if etat.get("cle_publique_app"):
+                rep = self._http.put(f"/appairages/{self.session}/agent", json={"cle_publique_agent": _b64(self._privee.public_key().public_bytes_raw())})
+                if rep.status_code == 404:
+                    raise TimeoutError("session d'appairage expirée ou fermée")
+                rep.raise_for_status()
                 secret = self._privee.exchange(X25519PublicKey.from_public_bytes(_unb64(etat["cle_publique_app"])))
                 self._cle, self.code = deriver(secret, self.session)
                 return self.code

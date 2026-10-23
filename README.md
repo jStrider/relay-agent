@@ -25,7 +25,7 @@ relay-agent relier
 
 The command prints its messages in French. Above, it asks you to enter `K7Q2-M6XA` under "Link an agent" in the Relay app, then shows a code to compare with the one in the app.
 
-The agent and the app exchange ephemeral keys through the relay and show the same six-digit code. The phrase is sent encrypted once you confirm in the app. The relay only sees ciphertext. `--oui` replaces a phrase that is already saved. From the bridge: `POST /relier` returns the session, and `GET /relier/<session>` gives the state (`attente_app`, `code`, `appairé`, `expiré`) and the code.
+The agent and the app exchange ephemeral keys through the relay and show the same six-digit code. The agent first publishes only a SHA-256 commitment to its key and reveals the key once the app has posted its own; the app checks the key against the commitment. A malicious relay therefore cannot pick keys that make the two codes match. The phrase is sent encrypted once you confirm in the app. The relay only sees ciphertext. `--oui` replaces a phrase that is already saved. From the bridge: `POST /relier` returns the session, and `GET /relier/<session>` gives the state (`attente_app`, `code`, `appairé`, `expiré`) and the code.
 
 ## Command line
 
