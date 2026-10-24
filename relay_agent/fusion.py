@@ -21,12 +21,14 @@ def _heure(texte: str) -> int:
         return 0
 
 
+NOMS_SANTE = {"course": "Course", "velo": "Vélo", "marche": "Marche", "rando": "Randonnée", "natation": "Natation"}
+
+
 def apparier(seance: dict, prevues: list) -> None:
-    """Une course du jour d'une séance prévue reçoit l'identifiant et le nom de la plus proche en heure."""
-    if seance.get("name") != "Course":
-        return
+    """Une séance réalisée reçoit l'identifiant et le nom de la séance prévue le même jour, du même sport, la plus proche en heure."""
     debut = str(seance.get("start") or "")
-    du_jour = [p for p in prevues if isinstance(p, dict) and str(p.get("date") or "")[:10] == debut[:10]]
+    du_jour = [p for p in prevues if isinstance(p, dict) and str(p.get("date") or "")[:10] == debut[:10]
+               and NOMS_SANTE.get(p.get("sport") or "course") == seance.get("name")]
     if du_jour:
         p = min(du_jour, key=lambda p: abs(_heure(str(p.get("date") or "")) - _heure(debut)))
         seance["prevu_id"], seance["prevu_nom"] = p.get("id"), p.get("nom")

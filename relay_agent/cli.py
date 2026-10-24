@@ -38,6 +38,8 @@ def executer_seance(args: list[str], dest: Path, relais: client.Relais) -> tuple
     a.add_argument("--echauffement", type=int, default=0)
     a.add_argument("--retour-calme", type=int, default=0)
     a.add_argument("--bloc", action="append", required=True)
+    a.add_argument("--sport", default="course", help=", ".join(seance.SPORTS))
+    a.add_argument("--lieu", default="exterieur", help="exterieur, ou interieur pour tapis, home trainer, piscine")
     r = sub.add_parser("retirer")
     r.add_argument("id")
     sub.add_parser("lister")
@@ -48,7 +50,7 @@ def executer_seance(args: list[str], dest: Path, relais: client.Relais) -> tuple
         return 2, f"arguments refusés : {e.message}"
     try:
         if n.commande == "ajouter":
-            liste = seance.ajouter(dest, relais, n.id, n.nom, n.date, n.bloc, n.echauffement, n.retour_calme)
+            liste = seance.ajouter(dest, relais, n.id, n.nom, n.date, n.bloc, n.echauffement, n.retour_calme, sport=n.sport, lieu=n.lieu)
         elif n.commande == "retirer":
             liste = seance.retirer(dest, relais, n.id)
         elif n.commande == "purger":

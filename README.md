@@ -40,7 +40,7 @@ The agent and the app exchange ephemeral keys through the relay and show the sam
 | `relay-agent mcp --dest D` | MCP server on stdio | |
 | `relay-agent relier [--oui]` | Pairing with a short code (see above) | session, code, confirmation |
 
-A block step is `effort:` or `recup:` (recovery) followed by a duration in seconds or a distance (`400m`), with an optional `@pace` in min/km (`4:25-4:40`) or in s/km (`265-280`). Same `id` means the workout is replaced.
+A block step is `effort:` or `recup:` (recovery) followed by a duration in seconds or a distance (`400m`), with an optional target: `@pace` in min/km (`4:25-4:40`) or s/km (`265-280`), `@25-30kmh`, or a heart rate range `@fc130-150`. Pace and speed work for running and cycling only; heart rate works for every sport. `--sport` is `course` (running, default), `velo` (cycling), `marche` (walking), `rando` (hiking) or `natation` (swimming); `--lieu interieur` means treadmill, indoor trainer or pool. Same `id` means the workout is replaced.
 
 Exit codes: 0 success, 2 usage or validation error, 3 relay unreachable, 4 subscription required.
 
@@ -81,7 +81,7 @@ Claude Desktop (`claude_desktop_config.json`) or Cursor (`.cursor/mcp.json`):
 
 The phrase comes from `~/.config/relay/phrase` (mode 600). Do not put it in this configuration file, which other users can often read. `RELAY_PHRASE` remains for containers.
 
-Tools: `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s)`, `retirer(id)`, `rafraichir`.
+Tools: `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s, sport, lieu)`, `retirer(id)`, `rafraichir`.
 
 ## Development
 

@@ -38,7 +38,7 @@ L'agent et l'app échangent des clés éphémères par le relais, affichent le m
 | `relay-agent mcp --dest D` | Serveur MCP sur stdio | |
 | `relay-agent relier [--oui]` | Appairage par code court (voir plus haut) | session, code, confirmation |
 
-Une étape de bloc est `effort:` ou `recup:` suivi d'une durée en secondes ou d'une distance (`400m`), avec `@allure` optionnelle en min/km (`4:25-4:40`) ou en s/km (`265-280`). Même `id` = la séance est remplacée.
+Une étape de bloc est `effort:` ou `recup:` suivi d'une durée en secondes ou d'une distance (`400m`), avec une cible optionnelle : `@allure` en min/km (`4:25-4:40`) ou en s/km (`265-280`), `@25-30kmh`, ou une plage de fréquence cardiaque `@fc130-150`. L'allure et la vitesse ne marchent qu'en course et à vélo ; la fréquence cardiaque marche pour tous les sports. `--sport` vaut `course` (par défaut), `velo`, `marche`, `rando` ou `natation` ; `--lieu interieur` pour le tapis, le home trainer ou la piscine. Même `id` = la séance est remplacée.
 
 Codes de sortie : 0 succès, 2 usage ou validation, 3 relais injoignable, 4 abonnement requis.
 
@@ -79,7 +79,7 @@ Claude Desktop (`claude_desktop_config.json`) ou Cursor (`.cursor/mcp.json`) :
 
 La phrase vient de `~/.config/relay/phrase` (mode 600) : ne la mets pas dans ce fichier de configuration, souvent lisible par d'autres. `RELAY_PHRASE` reste pour les conteneurs.
 
-Outils : `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s)`, `retirer(id)`, `rafraichir`.
+Outils : `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s, sport, lieu)`, `retirer(id)`, `rafraichir`.
 
 ## Développement
 

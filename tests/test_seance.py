@@ -130,3 +130,36 @@ def test_date_ecrite_a_la_seconde(monde):
     dest, r, f = monde
     ajouter(dest, r, date="2026-10-21T18:30:00.5+02:00")
     assert local(dest)[0]["date"] == "2026-10-21T18:30:00+02:00"
+
+
+def test_course_par_defaut_garde_l_ancien_format(monde):
+    dest, r, f = monde
+    s = ajouter(dest, r)[0]
+    assert "sport" not in s and "lieu" not in s
+
+
+def test_velo_interieur_en_kmh(monde):
+    dest, r, f = monde
+    s = ajouter(dest, r, id="2026-10-22-velo", nom="Home trainer", sport="velo", lieu="interieur", blocs=["3x effort:600@30-25kmh recup:300"])[0]
+    assert s["sport"] == "velo" and s["lieu"] == "interieur"
+    assert s["blocs"][0]["etapes"][0]["allure"] == {"min_s_km": 120, "max_s_km": 144}
+
+
+def test_rando_en_frequence_cardiaque(monde):
+    dest, r, f = monde
+    s = ajouter(dest, r, id="2026-10-22-rando", nom="Rando", sport="rando", blocs=["1x effort:7200@fc140-120"])[0]
+    assert s["blocs"][0]["etapes"][0] == {"type": "effort", "duree_s": 7200, "fc": {"min": 120, "max": 140}}
+
+
+def test_allure_refusee_hors_course_et_velo(monde):
+    dest, r, f = monde
+    with pytest.raises(seance.Validation, match="fréquence cardiaque"):
+        ajouter(dest, r, sport="natation", blocs=["4x effort:100m@2:00-2:10 recup:30"])
+
+
+def test_sport_et_lieu_inconnus_refuses(monde):
+    dest, r, f = monde
+    with pytest.raises(seance.Validation, match="sport inconnu"):
+        ajouter(dest, r, sport="ski")
+    with pytest.raises(seance.Validation, match="lieu inconnu"):
+        ajouter(dest, r, lieu="dehors")

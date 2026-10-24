@@ -61,3 +61,12 @@ def test_appariement_tolere_prevues_mal_formees():
 
 def test_nom_fichier_seance():
     assert fusion.nom_fichier_seance("seances/2026-10-18-ABC.json") == "2026-10-18-ABC.json"
+
+
+def test_appariement_par_sport():
+    prevues = PREVUES + [{"id": "2026-10-21-velo", "nom": "Vélo cool", "date": "2026-10-21T18:00:00+02:00", "sport": "velo"}]
+    v = {"name": "Vélo", "start": "2026-10-21 18:34:02 +0200"}
+    fusion.apparier(v, prevues)
+    c = {"name": "Course", "start": "2026-10-21 18:34:02 +0200"}
+    fusion.apparier(c, prevues)
+    assert v["prevu_id"] == "2026-10-21-velo" and c["prevu_id"] == "2026-10-21-soir"

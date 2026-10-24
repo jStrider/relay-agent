@@ -83,9 +83,10 @@ def creer(relais: Relais, dest: Path) -> MCPServer:
             return json.dumps(out, ensure_ascii=False) if out else "aucune séance sur la période"
         return _texte(f)
 
-    @s.tool(description="Planifie une séance de course qui part sur la montre. blocs : liste de « 6x effort:180@4:25-4:40 recup:120 » ; une étape est effort: ou recup: suivi d'une durée en secondes ou d'une distance (400m), avec @allure optionnelle.")
-    def planifier(id: str, nom: str, date: str, blocs: list[str], echauffement_s: int = 0, retour_calme_s: int = 0) -> str:
-        return _texte(lambda: seance.formater(seance.ajouter(dest, relais, id, nom, date, blocs, echauffement_s, retour_calme_s)))
+    @s.tool(description="Planifie une séance qui part sur la montre. sport : course, velo, marche, rando ou natation ; lieu : exterieur ou interieur (tapis, home trainer, piscine). blocs : liste de « 6x effort:180@4:25-4:40 recup:120 » ; une étape est effort: ou recup: suivi d'une durée en secondes ou d'une distance (400m), avec une cible optionnelle : @allure min/km ou @25-30kmh (course et vélo seulement), ou @fc130-150 en battements par minute.")
+    def planifier(id: str, nom: str, date: str, blocs: list[str], echauffement_s: int = 0, retour_calme_s: int = 0,
+                  sport: str = "course", lieu: str = "exterieur") -> str:
+        return _texte(lambda: seance.formater(seance.ajouter(dest, relais, id, nom, date, blocs, echauffement_s, retour_calme_s, sport=sport, lieu=lieu)))
 
     @s.tool(description="Retire une séance planifiée (elle disparaît de la montre).")
     def retirer(id: str) -> str:
