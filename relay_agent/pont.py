@@ -4,10 +4,11 @@ locale ou de pont Docker, et n'offre que sync, rafraichir, seance et etat. Rien 
 import ipaddress
 import json
 import threading
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import appairage, rafraichir, sync
+from . import appairage, evenements, rafraichir, sync
 from .client import Relais
 
 
@@ -19,7 +20,8 @@ def adresse_autorisee(adresse: str) -> bool:
     return ip.is_loopback or ip.is_private and not ip.is_unspecified
 
 
-def creer(adresse: str, port: int, relais: Relais, dest: Path, phrase_chemin: Path | None = None) -> ThreadingHTTPServer:
+def creer(adresse: str, port: int, relais: Relais, dest: Path, phrase_chemin: Path | None = None,
+          sur_evenement: str | None = None) -> ThreadingHTTPServer:
     if not adresse_autorisee(adresse):
         raise ValueError(f"le pont n'écoute que sur une adresse locale ou de pont Docker, pas {adresse!r}")
     dest = Path(dest)
@@ -80,6 +82,8 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path, phrase_chemin: Pa
                 if chemin == "/sync":
                     with verrou:
                         rapport = sync.synchroniser(relais, dest, journal=lambda m: None)
+                        if sur_evenement:
+                            evenements.declencher(sur_evenement, evenements.detecter(dest, datetime.now().astimezone()), journal=lambda m: None)
                     return self.repondre(200, {"blobs_lus": rapport.blobs_lus, "blobs_ignores": rapport.blobs_ignores})
                 if chemin == "/rafraichir":
                     return self.repondre(200, rafraichir.demander(relais))

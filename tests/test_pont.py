@@ -1,7 +1,10 @@
 import json
+import sys
 import threading
+import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 
 import pytest
 
@@ -110,3 +113,26 @@ def test_pont_relier_etats(monde):
     assert etat["etat"] == "appairé" and etat.get("code") == f.codes_app
     assert "relay1:" not in json.dumps(etat)
     assert (dest / "phrase-pont").read_text() == V["phrase"]  # jamais le vrai ~/.config/relay/phrase
+
+
+def test_pont_sync_signale_le_reveil(tmp_path):
+    f = FauxRelais()
+    r = client.Relais(f.url, IDENTITE)
+    fin = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
+    r.deposer("metriques/sleep_analysis/2026-10.json", json.dumps(
+        {"name": "sleep_analysis", "units": "hr", "data": [{"date": fin[:10] + " 00:00:00 +0200", "sleepEnd": fin, "core": 6}]}).encode())
+    recu = tmp_path / "recu"
+    script = f"import os, pathlib; pathlib.Path({str(recu)!r}).write_text(os.environ['RELAY_EVENEMENT'])"
+    serveur = pont.creer("127.0.0.1", 0, r, tmp_path / "dest", sur_evenement=f"{sys.executable} -c \"{script}\"")
+    threading.Thread(target=serveur.serve_forever, daemon=True).start()
+    try:
+        assert appel(f"http://127.0.0.1:{serveur.server_address[1]}", "POST", "/sync")[0] == 200
+        for _ in range(50):
+            if recu.exists() and recu.read_text():
+                break
+            time.sleep(0.1)
+        assert json.loads(recu.read_text())["type"] == "reveil"
+    finally:
+        serveur.shutdown()
+        serveur.server_close()
+        f.arreter()

@@ -1,4 +1,4 @@
-"""Ligne de commande `relay-agent` : sync, rafraichir, seance, resume, pont, mcp.
+"""Ligne de commande `relay-agent` : sync, rafraichir, seance, resume, pont, mcp, relier.
 Codes de sortie : 0 succès, 2 usage ou validation, 3 relais injoignable, 4 abonnement requis."""
 
 import argparse
@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import appairage, client, phrase, rafraichir, resume, seance, sync
+from . import appairage, client, evenements, phrase, rafraichir, resume, seance, sync
 
 PARIS_NOW = lambda: datetime.now().astimezone()  # noqa: E731
 
@@ -101,6 +101,9 @@ def main(argv: list[str] | None = None, env=None) -> int:
             s.add_argument("--sans-rafraichir", action="store_true")
         if nom == "pont":
             s.add_argument("--ecoute", default="172.17.0.1:8771")
+        if nom in ("sync", "pont"):
+            s.add_argument("--sur-evenement", metavar="COMMANDE",
+                           help="commande lancée à chaque réveil ou séance terminée, l'événement en JSON dans RELAY_EVENEMENT")
         if nom == "seance":
             s.add_argument("args", nargs=argparse.REMAINDER)
     sub.add_parser("rafraichir")
@@ -118,6 +121,8 @@ def main(argv: list[str] | None = None, env=None) -> int:
     try:
         if n.commande == "sync":
             sync.synchroniser(relais, n.dest, journal=lambda m: print(m, file=sys.stderr))
+            if n.sur_evenement:
+                evenements.declencher(n.sur_evenement, evenements.detecter(n.dest, PARIS_NOW()), journal=lambda m: print(m, file=sys.stderr))
             return 0
         if n.commande == "rafraichir":
             print(json.dumps(rafraichir.demander(relais), ensure_ascii=False))
@@ -148,7 +153,8 @@ def main(argv: list[str] | None = None, env=None) -> int:
         if n.commande == "pont":
             from . import pont
             hote, port = n.ecoute.rsplit(":", 1)
-            serveur = pont.creer(hote, int(port), relais, n.dest, Path(env.get("HOME", str(Path.home()))) / ".config" / "relay" / "phrase")
+            serveur = pont.creer(hote, int(port), relais, n.dest, Path(env.get("HOME", str(Path.home()))) / ".config" / "relay" / "phrase",
+                                 sur_evenement=n.sur_evenement)
             print(f"pont sur {n.ecoute}, dest {n.dest}", file=sys.stderr)
             serveur.serve_forever()
             return 0

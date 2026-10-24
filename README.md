@@ -54,6 +54,23 @@ relay-agent pont --ecoute 172.17.0.1:8771 --dest /home/agent/workspace
 
 From the container: `POST /sync`, `POST /rafraichir`, `POST /seance` with `{"args": ["ajouter", "--id", …]}`, `GET /etat`. The bridge refuses to listen on `0.0.0.0`.
 
+## Events: wake-up and finished workout
+
+With `--sur-evenement`, `sync` and `pont` run a command of yours each time a sync brings a new night of sleep (you just woke up) or a finished workout. Each event fires once, and only if it is less than 6 hours old:
+
+```sh
+relay-agent pont --dest /home/agent/workspace --sur-evenement /usr/local/bin/on-relay-event
+```
+
+The command receives the event as JSON in `RELAY_EVENEMENT`:
+
+```json
+{"type": "reveil", "nuit": "2026-10-25", "fin": "2026-10-25 07:12:00 +0100", "sommeil_h": 7.5}
+{"type": "seance", "id": "FC2167F2-…", "nom": "Course", "fin": "2026-10-25 19:14:00 +0100", "prevu_id": "2026-10-25-facile-40min"}
+```
+
+The relay never sees these events: they are computed on your side, after decryption. Detection follows the sync, so with the bridge, call `POST /sync` regularly (every 5 minutes for example).
+
 ## MCP server
 
 Claude Desktop (`claude_desktop_config.json`) or Cursor (`.cursor/mcp.json`):
