@@ -7,7 +7,7 @@ Client of [Relay](https://github.com/jStrider/relay) for an AI agent. The Relay 
 ## Installation and pairing
 
 ```sh
-pip install relay-agent            # or: uv tool install relay-agent
+uv tool install git+https://github.com/jStrider/relay-agent   # or: pipx install git+https://github.com/jStrider/relay-agent
 mkdir -p ~/.config/relay && (umask 077; printf '%s' 'relay1:…' > ~/.config/relay/phrase)
 export RELAY_URL=https://relay.<domain>   # only for a relay other than https://relay.relay-agent.app
 ```
