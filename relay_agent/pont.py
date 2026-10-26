@@ -1,5 +1,5 @@
 """Pont sans secret pour un agent en bac à sable : tourne sur l'hôte avec la phrase, n'écoute que sur une adresse
-locale ou de pont Docker, et n'offre que sync, rafraichir, seance et etat. Rien de ce qu'il renvoie ne contient la phrase."""
+locale ou de pont Docker, et n'offre que sync, rafraichir, seance, message et etat. Rien de ce qu'il renvoie ne contient la phrase."""
 
 import ipaddress
 import json
@@ -8,7 +8,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import appairage, evenements, rafraichir, sync
+from . import appairage, client, evenements, rafraichir, sync
 from .client import Relais
 
 
@@ -87,6 +87,15 @@ def creer(adresse: str, port: int, relais: Relais, dest: Path, phrase_chemin: Pa
                     return self.repondre(200, {"blobs_lus": rapport.blobs_lus, "blobs_ignores": rapport.blobs_ignores})
                 if chemin == "/rafraichir":
                     return self.repondre(200, rafraichir.demander(relais))
+                if chemin == "/message":
+                    try:
+                        d = json.loads(corps or b"{}")
+                        relais.envoyer_message(str(d.get("texte") or ""), d.get("titre"))
+                    except ValueError as e:
+                        return self.repondre(400, {"status": str(e)})
+                    except client.AbonnementRequis:
+                        return self.repondre(402, {"status": "abonnement requis"})
+                    return self.repondre(200, {"status": "envoyé"})
                 if chemin == "/seance":
                     from .cli import executer_seance
                     try:

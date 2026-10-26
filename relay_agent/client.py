@@ -1,5 +1,6 @@
 """Client HTTP du relais : chiffre avant de déposer, déchiffre après avoir lu, traduit les codes en exceptions."""
 
+import base64
 import json
 import time
 
@@ -7,6 +8,9 @@ import httpx
 
 from . import chiffrement
 from .phrase import Identite
+
+
+MAX_MESSAGE = 2000  # chiffré puis en base64url, il tient sous la limite de 3 000 caractères du relais
 
 
 class Injoignable(Exception):
@@ -63,6 +67,14 @@ class Relais:
 
     def retirer(self, nom: str) -> bool:
         return self._requete("DELETE", f"/blobs/{nom}").status_code == 204
+
+    def envoyer_message(self, texte: str, titre: str | None = None) -> None:
+        """Notification sur l'iPhone et la montre, chiffrée ici : le relais la transmet sans pouvoir la lire."""
+        clair = json.dumps({"texte": texte, **({"titre": titre} if titre else {})}, ensure_ascii=False).encode()
+        if not texte.strip() or len(clair) > MAX_MESSAGE:
+            raise ValueError(f"message vide ou trop long : {MAX_MESSAGE} octets au plus, titre compris")
+        chiffre = base64.urlsafe_b64encode(chiffrement.chiffrer(self.identite.cle, self.identite.id, "message", clair)).decode().rstrip("=")
+        self._requete("POST", "/messages", json={"chiffre": chiffre})
 
     def rafraichir(self) -> tuple[int, dict]:
         try:

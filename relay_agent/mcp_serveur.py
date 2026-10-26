@@ -92,6 +92,16 @@ def creer(relais: Relais, dest: Path) -> MCPServer:
     def retirer(id: str) -> str:
         return _texte(lambda: seance.formater(seance.retirer(dest, relais, id)))
 
+    @s.tool(description="Envoie une notification sur l'iPhone et la montre de l'utilisateur, chiffrée de bout en bout. 2 000 octets au plus.")
+    def message(texte: str, titre: str = "") -> str:
+        def envoyer():
+            try:
+                relais.envoyer_message(texte, titre or None)
+            except ValueError as e:  # avant _texte, qui prendrait l'erreur pour un fichier local illisible
+                return f"refusé : {e}"
+            return "envoyé"
+        return _texte(envoyer)
+
     @s.tool(name="rafraichir", description="Demande à l'iPhone une synchro fraîche (jusqu'à 25 s) ; renvoie le code HTTP et l'état.")
     def rafraichir_() -> str:
         return _texte(lambda: json.dumps(rafraichir.demander(relais), ensure_ascii=False))

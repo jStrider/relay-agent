@@ -1,4 +1,4 @@
-"""Ligne de commande `relay-agent` : sync, rafraichir, seance, resume, pont, mcp, relier.
+"""Ligne de commande `relay-agent` : sync, rafraichir, seance, message, resume, pont, mcp, relier.
 Codes de sortie : 0 succès, 2 usage ou validation, 3 relais injoignable, 4 abonnement requis."""
 
 import argparse
@@ -109,6 +109,9 @@ def main(argv: list[str] | None = None, env=None) -> int:
         if nom == "seance":
             s.add_argument("args", nargs=argparse.REMAINDER)
     sub.add_parser("rafraichir")
+    msg = sub.add_parser("message", help="notification sur l'iPhone et la montre, chiffrée de bout en bout")
+    msg.add_argument("texte")
+    msg.add_argument("--titre")
     rel = sub.add_parser("relier", help="relier cet agent à l'app par un code court, sans manipuler la phrase")
     rel.add_argument("--oui", action="store_true", help="remplacer une phrase déjà enregistrée")
     rel.add_argument("--delai", type=float, default=600, help="secondes d'attente de l'app")
@@ -128,6 +131,13 @@ def main(argv: list[str] | None = None, env=None) -> int:
             return 0
         if n.commande == "rafraichir":
             print(json.dumps(rafraichir.demander(relais), ensure_ascii=False))
+            return 0
+        if n.commande == "message":
+            try:
+                relais.envoyer_message(n.texte, n.titre)
+            except ValueError as e:
+                print(str(e), file=sys.stderr)
+                return 2
             return 0
         if n.commande == "resume":
             reponse = None if n.sans_rafraichir else rafraichir.demander(relais)

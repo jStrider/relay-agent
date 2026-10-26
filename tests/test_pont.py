@@ -136,3 +136,10 @@ def test_pont_sync_signale_le_reveil(tmp_path):
         serveur.shutdown()
         serveur.server_close()
         f.arreter()
+
+
+def test_pont_message(monde):
+    url, f, dest = monde
+    assert appel(url, "POST", "/message", {"texte": "Bravo", "titre": "Hermes"})[0] == 200
+    assert len(f.messages) == 1
+    assert appel(url, "POST", "/message", {"texte": ""})[0] == 400

@@ -16,6 +16,7 @@ class FauxRelais:
         self.appairages: dict[str, dict] = {}
         self.jeton, self.abonne, self.reponse_rafraichir = jeton, abonne, rafraichir
         self.requetes = []
+        self.messages: list[str] = []
         self.refuser_429 = 0
         self.substituer = None  # "app" ou "agent" : le relais présente à l'autre partie une clé à lui à la place de celle-ci
         self.cle_intruse = base64.urlsafe_b64encode(X25519PrivateKey.generate().public_key().public_bytes_raw()).decode().rstrip("=")
@@ -123,6 +124,11 @@ class FauxRelais:
                         return self.envoyer(402, b'{"detail":"abonnement requis"}')
                     code, corps = relais.reponse_rafraichir
                     return self.envoyer(code, json.dumps(corps).encode())
+                if self.path == "/messages":
+                    if not relais.abonne:
+                        return self.envoyer(402, b'{"detail":"abonnement requis"}')
+                    relais.messages.append(json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)))["chiffre"])
+                    return self.envoyer(200, b'{"status":"envoy\xc3\xa9"}')
                 self.envoyer(404, b"{}")
 
         self.serveur = ThreadingHTTPServer(("127.0.0.1", 0), H)

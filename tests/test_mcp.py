@@ -30,7 +30,7 @@ def appeler(s, outil, **args):
 def test_outils_listes(serveur):
     s, f, dest = serveur
     noms = {t.name for t in asyncio.run(s.list_tools())}
-    assert noms == {"etat", "resume", "metriques", "seances", "planifier", "retirer", "rafraichir"}
+    assert noms == {"etat", "resume", "metriques", "seances", "planifier", "retirer", "rafraichir", "message"}
 
 
 def test_etat_apres_sync(serveur):
