@@ -54,6 +54,10 @@ relay-agent pont --ecoute 172.17.0.1:8771 --dest /home/agent/workspace
 
 From the container: `POST /sync`, `POST /rafraichir`, `POST /seance` with `{"args": ["ajouter", "--id", …]}`, `GET /etat`. The bridge refuses to listen on `0.0.0.0`.
 
+## Messages to the iPhone and the watch
+
+`relay-agent message "Well done this morning" --titre Hermes` shows a notification on the iPhone, mirrored on the watch when the iPhone is locked. The agent encrypts it with the account key; the relay forwards it to Apple without being able to read it or keeping it, and the app decrypts it on arrival. 2,000 bytes at most, 30 per hour, subscribers only. From a container: `POST /message` with `{"texte": "…", "titre": "…"}` on the bridge; with MCP, the `message` tool.
+
 ## Events: wake-up and finished workout
 
 With `--sur-evenement`, `sync` and `pont` run a command of yours each time a sync brings a new night of sleep (you just woke up) or a finished workout. Each event fires once, and only if it is less than 6 hours old:
@@ -81,7 +85,7 @@ Claude Desktop (`claude_desktop_config.json`) or Cursor (`.cursor/mcp.json`):
 
 The phrase comes from `~/.config/relay/phrase` (mode 600). Do not put it in this configuration file, which other users can often read. `RELAY_PHRASE` remains for containers.
 
-Tools: `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s, sport, lieu)`, `retirer(id)`, `rafraichir`.
+Tools: `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s, sport, lieu)`, `retirer(id)`, `rafraichir`, `message(texte, titre)`.
 
 ## Development
 

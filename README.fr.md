@@ -52,6 +52,10 @@ relay-agent pont --ecoute 172.17.0.1:8771 --dest /home/agent/workspace
 
 Depuis le conteneur : `POST /sync`, `POST /rafraichir`, `POST /seance` avec `{"args": ["ajouter", "--id", …]}`, `GET /etat`. Le pont refuse d'écouter sur `0.0.0.0`.
 
+## Messages sur l'iPhone et la montre
+
+`relay-agent message "Bien joué ce matin" --titre Hermes` affiche une notification sur l'iPhone, reprise sur la montre quand l'iPhone est verrouillé. L'agent la chiffre avec la clé du compte ; le relais la transmet à Apple sans pouvoir la lire ni la garder, et l'app la déchiffre à l'arrivée. 2 000 octets au plus, 30 par heure, réservé aux abonnés. Depuis un conteneur : `POST /message` avec `{"texte": "…", "titre": "…"}` sur le pont ; en MCP, l'outil `message`.
+
 ## Événements : réveil et séance terminée
 
 Avec `--sur-evenement`, `sync` et `pont` lancent une commande de ton choix chaque fois qu'une synchro apporte une nouvelle nuit de sommeil (tu viens de te réveiller) ou une séance terminée. Chaque événement part une seule fois, et seulement s'il a moins de 6 heures :
@@ -79,7 +83,7 @@ Claude Desktop (`claude_desktop_config.json`) ou Cursor (`.cursor/mcp.json`) :
 
 La phrase vient de `~/.config/relay/phrase` (mode 600) : ne la mets pas dans ce fichier de configuration, souvent lisible par d'autres. `RELAY_PHRASE` reste pour les conteneurs.
 
-Outils : `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s, sport, lieu)`, `retirer(id)`, `rafraichir`.
+Outils : `etat`, `resume`, `metriques(nom, jours)`, `seances(jours)`, `planifier(id, nom, date, blocs, echauffement_s, retour_calme_s, sport, lieu)`, `retirer(id)`, `rafraichir`, `message(texte, titre)`.
 
 ## Développement
 
