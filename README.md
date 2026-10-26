@@ -60,7 +60,7 @@ From the container: `POST /sync`, `POST /rafraichir`, `POST /seance` with `{"arg
 
 ## Events: wake-up and finished workout
 
-With `--sur-evenement`, `sync` and `pont` run a command of yours each time a sync brings a new night of sleep (you just woke up) or a finished workout. Each event fires once, and only if it is less than 6 hours old:
+With `--sur-evenement`, `sync` and `pont` run a command of yours each time a sync brings a new night of sleep (you just woke up) or a finished workout, or when you reply to one of its messages from the notification (`D/coach/reponses/`). Each event fires once, and only if it is less than 6 hours old:
 
 ```sh
 relay-agent pont --dest /home/agent/workspace --sur-evenement /usr/local/bin/on-relay-event
@@ -71,6 +71,7 @@ The command receives the event as JSON in `RELAY_EVENEMENT`:
 ```json
 {"type": "reveil", "nuit": "2026-10-25", "fin": "2026-10-25 07:12:00 +0100", "sommeil_h": 7.5}
 {"type": "seance", "id": "FC2167F2-…", "nom": "Course", "fin": "2026-10-25 19:14:00 +0100", "prevu_id": "2026-10-25-facile-40min"}
+{"type": "reponse", "texte": "OK", "a": "Tonight: 6 × 3 min", "quand": "2026-10-25T07:35:00+01:00"}
 ```
 
 The relay never sees these events: they are computed on your side, after decryption. Detection follows the sync, so with the bridge, call `POST /sync` regularly (every 5 minutes for example).

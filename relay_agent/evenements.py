@@ -1,5 +1,5 @@
-"""Événements repérés après une synchro (réveil, séance terminée), chacun signalé une seule fois à une commande
-choisie par l'agent : `--sur-evenement 'commande'` reçoit l'événement en JSON dans RELAY_EVENEMENT."""
+"""Événements repérés après une synchro (réveil, séance terminée, réponse à un message), chacun signalé une seule fois
+à une commande choisie par l'agent : `--sur-evenement 'commande'` reçoit l'événement en JSON dans RELAY_EVENEMENT."""
 
 import json
 import os
@@ -56,7 +56,20 @@ def detecter(dest: Path, maintenant: datetime) -> list[dict]:
             e["prevu_id"] = s["prevu_id"]
         nouveaux.append(e)
         vus.append(s["id"])
+    lues = list(etat.get("reponses", []))
+    for f in sorted((dest / "coach" / "reponses").glob("*.json")):
+        r = _lire(f)
+        if f.name in lues or not isinstance(r, dict):
+            continue
+        lues.append(f.name)
+        try:
+            quand = datetime.fromisoformat(str(r.get("quand")))
+        except ValueError:
+            continue
+        if _recent(quand, maintenant):
+            nouveaux.append({"type": "reponse", "texte": r.get("texte"), "a": r.get("a"), "quand": r.get("quand")})
     etat["seances"] = vus[-50:]
+    etat["reponses"] = lues[-200:]
     (dest / ETAT).parent.mkdir(parents=True, exist_ok=True)
     (dest / ETAT).write_text(json.dumps(etat))
     return nouveaux

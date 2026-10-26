@@ -1,6 +1,6 @@
 [project]
 name = "relay-agent"
-version = "0.4.0"
+version = "0.5.0"
 description = "Agent client for the Relay iPhone app: decrypts Apple Health data from the relay and schedules Apple Watch workouts (files, CLI, MCP)"
 authors = [{name = "Julien Renaud"}]
 requires-python = ">=3.11"

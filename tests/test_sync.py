@@ -74,3 +74,11 @@ def test_ecriture_atomique_sans_tmp_residuel(relais, tmp_path):
     deposer(relais, "etat.json", {"synced_at": "1"})
     sync.synchroniser(client.Relais(relais.url, IDENTITE), tmp_path, journal=lambda *a: None)
     assert not list((tmp_path / "sante").rglob("*.tmp"))
+
+
+def test_reponse_rangee_puis_retiree_du_relais(relais, tmp_path):
+    deposer(relais, "reponses/1793000000000.json", {"texte": "OK", "a": "Séance", "quand": "2026-10-25T07:35:00+01:00"})
+    rapport = sync.synchroniser(client.Relais(relais.url, IDENTITE), tmp_path, journal=lambda *a: None)
+    assert rapport.blobs_lus == 1
+    assert json.loads((tmp_path / "coach" / "reponses" / "1793000000000.json").read_text())["texte"] == "OK"
+    assert "reponses/1793000000000.json" not in relais.blobs
