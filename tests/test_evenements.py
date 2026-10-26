@@ -65,13 +65,3 @@ def test_declencher_passe_l_evenement_a_la_commande(tmp_path):
             break
         time.sleep(0.1)
     assert json.loads(sortie.read_text()) == {"type": "reveil", "nuit": "2026-10-25"}
-
-
-def test_reponse_signalee_une_fois(tmp_path):
-    d = tmp_path / "coach" / "reponses"
-    d.mkdir(parents=True)
-    (d / "1793000000000.json").write_text(json.dumps({"texte": "OK", "a": "Séance ce soir", "quand": "2026-10-25T07:35:00+01:00"}))
-    (d / "1792000000000.json").write_text(json.dumps({"texte": "vieux", "a": "x", "quand": "2026-10-10T07:35:00+02:00"}))
-    assert evenements.detecter(tmp_path, MAINTENANT) == [
-        {"type": "reponse", "texte": "OK", "a": "Séance ce soir", "quand": "2026-10-25T07:35:00+01:00"}]
-    assert evenements.detecter(tmp_path, MAINTENANT) == []

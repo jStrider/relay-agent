@@ -58,7 +58,7 @@ Depuis le conteneur : `POST /sync`, `POST /rafraichir`, `POST /seance` avec `{"a
 
 ## Événements : réveil et séance terminée
 
-Avec `--sur-evenement`, `sync` et `pont` lancent une commande de ton choix chaque fois qu'une synchro apporte une nouvelle nuit de sommeil (tu viens de te réveiller) ou une séance terminée, ou quand tu réponds à l'un de ses messages depuis la notification (`D/coach/reponses/`). Chaque événement part une seule fois, et seulement s'il a moins de 6 heures :
+Avec `--sur-evenement`, `sync` et `pont` lancent une commande de ton choix chaque fois qu'une synchro apporte une nouvelle nuit de sommeil (tu viens de te réveiller) ou une séance terminée. Chaque événement part une seule fois, et seulement s'il a moins de 6 heures :
 
 ```sh
 relay-agent pont --dest /home/agent/workspace --sur-evenement /usr/local/bin/sur-evenement-relay
@@ -69,7 +69,6 @@ La commande reçoit l'événement en JSON dans `RELAY_EVENEMENT` :
 ```json
 {"type": "reveil", "nuit": "2026-10-25", "fin": "2026-10-25 07:12:00 +0100", "sommeil_h": 7.5}
 {"type": "seance", "id": "FC2167F2-…", "nom": "Course", "fin": "2026-10-25 19:14:00 +0100", "prevu_id": "2026-10-25-facile-40min"}
-{"type": "reponse", "texte": "OK", "a": "Ce soir : 6 × 3 min", "quand": "2026-10-25T07:35:00+01:00"}
 ```
 
 Le relais ne voit jamais ces événements : ils sont calculés chez toi, après déchiffrement. La détection suit la synchro : avec le pont, appelle `POST /sync` régulièrement (toutes les 5 minutes par exemple).

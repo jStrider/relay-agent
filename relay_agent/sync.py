@@ -46,9 +46,6 @@ def _ranger(dest: Path, nom: str, clair: bytes) -> None:
         _ecrire(dest / "sante" / "etat.json", clair)
     elif nom == "prevu.json":
         _ecrire(dest / "coach" / "prevu.json", clair)
-    elif nom.startswith("reponses/"):
-        json.loads(clair)  # une réponse illisible reste sur le relais et est signalée
-        _ecrire(dest / "coach" / nom, clair)
     else:
         raise ValueError(f"blob inattendu : {nom}")
 
@@ -74,11 +71,8 @@ def synchroniser(relais: Relais, dest: Path, journal=print) -> Rapport:
             rapport.blobs_ignores.append(nom)
             journal(f"ignoré {nom} : {e}")
             continue
-        rapport.blobs_lus += 1
-        if nom.startswith("reponses/"):  # gardée ici, elle n'a plus rien à faire sur le relais
-            relais.retirer(nom)
-            continue
         connus[nom] = maj
+        rapport.blobs_lus += 1
     _ecrire(dest / ETAT_SYNC, json.dumps({"maj": connus}).encode())
     journal(f"synchro : {rapport.blobs_lus} blob(s) lu(s), {len(rapport.blobs_ignores)} ignoré(s)")
     return rapport
